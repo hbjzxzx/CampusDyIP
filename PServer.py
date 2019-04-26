@@ -31,10 +31,9 @@ class pserver():
 
         c.execute('''CREATE TABLE gpu_server_detail_table
        (
-       NAME TEXT  PRIMARY KEY,
-       RECORD_TIME   INT,
-       free_status  TEXT,
-       gpu_status TEXT
+       NAME TEXT  ,
+       RECORD_TIME  INT,
+       info  TEXT
        );''')
 
         conn.commit()
@@ -80,7 +79,30 @@ class pserver():
         return [json.dumps(json_dict).encode('utf-8')]
 
     def put_system_info(self, env, start_response):
-        pass
+        conn = sqlite3.connect(self.datapath)
+        c = conn.cursor()
+        json_dict = {}
+        put_success_flag = False
+
+        gpu_server_name = env['params']['name'].value
+        gpu_server_update_key = env['params']['update_key'].value
+        info = env['params']['info'].value
+
+        result = c.execute("SELECT name, update_key from gpu_server_info_table WHERE name=? and update_key=?;",
+                            (gpu_server_name, gpu_server_update_key)).fetchall()
+        
+        if len(result) == 0:
+            json_dict["reason"] = "name or update_key dismatch"
+        else:
+            c.execute("INSERT INTO gpu_server_detail_table (name, record_time, info) VALUE(?,?,?)",
+                    (gpu_server_name, time.time(), info))
+            put_success_flag = True
+             
+        start_response('200 OK', [ ('Content-type', 'application/json')])
+        json_dict["result"] = put_success_flag
+        conn.commit()
+        conn.close()
+        return [json.dumps(json_dict).encode('utf-8')]
 
 
     def put_ip_info(self, env, start_response):
