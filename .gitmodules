@@ -1,0 +1,6 @@
+[submodule "gputil"]
+	path = gputil
+	url = ./gputil
+[submodule "psutil"]
+	path = psutil
+	url = ./psutil
