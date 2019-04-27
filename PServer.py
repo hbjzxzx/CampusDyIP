@@ -34,8 +34,62 @@ class pserver():
        (
        NAME TEXT  ,
        RECORD_TIME  INT,
-       sys
+       
+       gpu_count INT,
+
+       cpu_count INT,
+       cpu_name TEXT,
+
+       memory_total INT,
+       
+       disk_part_count INT
        );''')
+
+       c.execute('''CREATE TABLE gpu_detail_table(
+           name TEXT,
+           gpu_id TEXT,
+           gpu_name TEXT,
+           gpu_total_mem INT
+       )
+       ''')
+
+        c.execute('''CREATE TABLE disk_detail_table(
+           name TEXT,
+           partial_id TEXT,
+           partial_name TEXT,
+           partial_total INT
+       )
+       ''')
+
+        c.execute('''CREATE TABLE disk_run_record(
+           partial_id TEXT,
+           record_time INT,
+           used INT
+       )
+       ''')
+        c.execute('''CREATE TABLE gpu_run_record(
+           gpu_id TEXT,
+           record_time INT,
+           load INT,
+           mem_load INT
+       )
+       ''')
+
+        c.execute('''CREATE TABLE cpu_run_record(
+           cpu_id TEXT,
+           record_time INT,
+           load INT
+       )
+       ''')
+
+        c.execute('''CREATE TABLE mem_run_record(
+           name TEXT,
+           record_time INT,
+           used INT,
+           free INT,
+           ava INT
+       )
+       ''')
 
         conn.commit()
         conn.close()
