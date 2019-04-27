@@ -2,7 +2,7 @@ import os, json, time, datetime
 import sqlite3
 import cgi
 import hashlib
-
+from Gweb import gen_page
 class pserver():
     def __init__(self, datapath):
         self.datapath = datapath
@@ -13,7 +13,8 @@ class pserver():
         self.pathmap[('GET', '/put_ip_info')] = self.put_ip_info
         self.pathmap[('GET', '/put_system_info')] = self.put_system_info
         self.pathmap[('GET', '/register')] = self.register_gpu_server
-
+        
+        self.pathmap[('GET', '/get_image')] = self.get_image
     def create_database(self):
         dir_name, file_name = os.path.split(self.datapath)
         if not os.path.isdir(dir_name):
@@ -33,7 +34,7 @@ class pserver():
        (
        NAME TEXT  ,
        RECORD_TIME  INT,
-       info  TEXT
+       sys
        );''')
 
         conn.commit()
@@ -43,6 +44,13 @@ class pserver():
         start_response('500 Internal Server Error', [ ('Content-type', 'text/plain')])
         c = info.encode(encoding='GBK', errors='strict')
         return [c]
+
+    def get_image(self, env, start_response):
+        f = open('./web_template/test.jpg', 'rb')
+        image = f.read()
+        start_response('200 OK', [ ('Content-type', 'image/jpg')])
+        f.close()
+        return [image]
 
     def __call__(self, env, start_response):
         try:
@@ -61,7 +69,17 @@ class pserver():
                 return self.error(env, start_response, "function({},{}) does not exist".format(method,path))
 
     def get_info_web(self, env, start_response):
-        pass
+        start_response('200 OK', [ ('Content-type', 'text/html')])
+        a={}
+        a["status"] = "success"
+        a["name"] = "name"
+        a["ip"] = "192.168.1.1"
+        a["last_ip_update"] = "yyyy-mm-dd: hh-mm-ss"
+        a["cpu_load"] = "100%"
+        a["gpu_load"] = "100%"
+        a["last_sys_update"] = "yyyy-mm-dd: hh-mm-ss"
+        page = gen_page([a,a,a])
+        return([page.encode('utf-8')])
 
     
     def get_infos(self, env, start_response):

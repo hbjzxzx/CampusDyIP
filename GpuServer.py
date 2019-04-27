@@ -64,6 +64,8 @@ class Reporter():
 
         if not dic["result"]:
             print("put ip error: {}".format(dic["reason"]))
+            print("try reregister with name:{}".format(self.name))
+            self.register()
     
     def put_system_info(self):
         info = Reporter.get_system_info()
