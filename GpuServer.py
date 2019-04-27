@@ -2,7 +2,7 @@
 
 import util.gputil.GPUtil as GPUtil
 import psutil
-import sqlite3, os, urllib, json, subprocess, sched, time
+import sqlite3, os, urllib, json, subprocess, sched, time, platform
 from subprocess import Popen, PIPE
 from functools import reduce
 
@@ -103,60 +103,48 @@ class Reporter():
             dic["load"] = gpu.load
             dic["mem_load"] = gpu.memoryUtil
             dic["mem_total"] = gpu.memoryTotal
+            dic['temperature'] = gpu.temperature
             cls.gpu_info["gpus"]["gpu{}".format(i)] = dic
         
         cls.cpu_info = {}
         cls.cpu_info["cpu_count"] = psutil.cpu_count()
-        for i in range(cls.cpu_info["cpu_count"]):
-            a = psutil.cpu_percent(interval=1, percpu=True)
-            cls.cpu_info["cpu_{}".format(i)] = reduce(lambda x,y:x+y, a)/len(a)
+        #cls.cpu_info["cpu_name"] = 
+        #psutil.cpu_stats()
+        
+        #for i in range(cls.cpu_info["cpu_count"]):
+        #    a = psutil.cpu_percent(interval=1, percpu=True)
+        #    cls.cpu_info["cpu_{}".format(i)] = reduce(lambda x,y:x+y, a)/len(a)
         
         cls.mem_info = {}
 
         mem_info = {}
-        rate = 30 # G 
-        print( psutil.virtual_memory())
+
         m = psutil.virtual_memory()
-        total_m = m.total >> rate
-        used_m = m.used >> rate
-        free_m = m.free >> rate
-        ava_m = m.available >> rate
-        percent_m = m.percent
-        mem_info["total"] = total_m
-        mem_info["used"] = used_m
-        mem_info["free"] = free_m
-        mem_info["ava"] = ava_m
-        mem_info["percent"] = percent_m
+        mem_info["total"] = m.total
+        mem_info["used"] = m.used
+        mem_info["free"] = m.free
+        mem_info["ava"] = m.available
+        mem_info["percent"] = m.percent
 
         disk_info = {}
-        disk_info["sys"] = {}
-
-        sys_disk = psutil.disk_usage('/')
-        sys_disk_total = sys_disk.total >> rate
-        sys_disk_used = sys_disk.used >> rate
-        sys_disk_percent = sys_disk.percent
-        disk_info["sys"]["total"] = sys_disk_total
-        disk_info["sys"]["used"] = sys_disk_used
-        disk_info["sys"]["percent"] = sys_disk_percent
-
-        disk_info["user"] = {}
         
-        user_disk = psutil.disk_usage('/home')
-        user_disk_total = user_disk.total >> rate
-        user_disk_used = user_disk.used >> rate
-        user_disk_percent = user_disk.percent
-        disk_info["user"]["total"] = user_disk_total
-        disk_info["user"]["used"] = user_disk_used
-        disk_info["user"]["percent"] = user_disk_percent
+        part_point = set()
+        for p in psutil.disk_partitions():
+            if p.device.startswith('/dev/s'):
+                part_point.add(p.mountpoint)
+        for d in part_point:
+            disk_info[d] = psutil.disk_usage(d)
         
         info = {}
         info["gpu"] = cls.gpu_info
         info["cpu"] = cls.cpu_info
-        info["mem"] = cls.mem_info
+        info["mem"] = mem_info
         info["disk"] = disk_info
         return info
 if __name__ == '__main__':
-    server_name = 'server1_209'
+    Reporter.get_system_info()
+    
+    erver_name = 'server1_209'
     local_dbname = 'sqlitedb.db'
     server_url = '95.169.16.163'
 
