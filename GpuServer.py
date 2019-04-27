@@ -2,7 +2,7 @@
 
 import util.gputil.GPUtil as GPUtil
 import psutil
-import sqlite3, os, urllib, json, subprocess, sched, time, platform
+import sqlite3, os, urllib.request, json, subprocess, sched, time, platform, urllib.parse
 from subprocess import Popen, PIPE
 from functools import reduce
 
@@ -25,15 +25,15 @@ class Reporter():
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
         
-        result = c.execute(''' SELECT NAME FROM local_data WHERE NAME=?;''', name).fetchall()
+        result = c.execute(''' SELECT NAME FROM local_data WHERE NAME=?;''', (name,)).fetchall()
         if len(result) == 0:
             c.execute(''' INSERT INTO local_data (name) VALUES(?);''', (name,))
             conn.commit()
             conn.close()
             self.register()
         else:
-            result = c.execute(''' SELECT update_key FROM local_data WHERE NAME=?;''', name).fetchall()[0]
-            if not result:
+            result = c.execute(''' SELECT update_key FROM local_data WHERE NAME=?;''', (name,)).fetchall()[0]
+            if not result[0]:
                 self.register()
             else:
                 self.update_key = result
@@ -43,7 +43,10 @@ class Reporter():
         self.put_system_info()
         timer.enter(interval, 0, self.start_report, (timer, interval) )
     def register(self):
-        register_url = "http://{}/register?name={}".format(self.host, self.name)
+        info = Reporter.get_system_info()
+        info = urllib.parse.urlencode(info)
+        register_url = "http://{}/register?name={}&info={}".format(self.host, self.name,info )
+        
         response = urllib.request.urlopen(register_url)
         dic = json.loads(response.readlines()[0])
         if dic["update_key"]:
@@ -144,13 +147,15 @@ class Reporter():
 if __name__ == '__main__':
     Reporter.get_system_info()
     
-    erver_name = 'server1_209'
+    server_name = 'server1_209'
     local_dbname = 'sqlitedb.db'
-    server_url = '95.169.16.163'
+    #server_url = '95.169.16.163'
+    server_ip_port = '192.168.0.105:8080'
+
 
     interval = 60
 
-    report = Reporter (server_name, local_dbname, server_name)
+    report = Reporter (server_name, local_dbname, server_ip_port)
     s = sched.scheduler(time.time, time.sleep)
     s.enter(0, 0, report.start_report, (s, interval))
     print('start...')

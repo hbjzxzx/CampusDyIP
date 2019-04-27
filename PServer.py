@@ -33,12 +33,9 @@ class pserver():
         c.execute('''CREATE TABLE gpu_server_detail_table
        (
        NAME TEXT  ,
-       RECORD_TIME  INT,
-       
        gpu_count INT,
 
        cpu_count INT,
-       cpu_name TEXT,
 
        memory_total INT,
        
