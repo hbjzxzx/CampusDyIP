@@ -138,7 +138,7 @@ class pserver():
             for x in range(cpu_count):
                 loads = c.execute("SELECT load from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(x, name)).fetchmany(size=plot_range)
                 ax.plot(datenums, loads, label="core{} load".format(x), linewidth=2.0)
-                
+                ax.set_ylabel('percent %')
         elif device == 'gpu':
             gpu_count = c.execute("SELECT gpu_count from gpu_server_detail_table WHERE name=?", (name,)).fetchone()[0]
             for x in range(gpu_count):
@@ -146,7 +146,7 @@ class pserver():
                 mem_loads = c.execute("SELECT mem_load from gpu_run_record WHERE gpu_id=? AND name=? ORDER BY record_time DESC",(x, name)).fetchmany(size=plot_range)
                 ax.plot(datenums, loads, label="GPU{} Load".format(x), linewidth=2.0)
                 ax.plot(datenums, mem_loads, label="GPU{} memory load".format(x), linewidth=2.0)
-               
+                ax.set_ylabel('percent %')
         elif device == 'mem':
             used = c.execute("SELECT used from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
             free = c.execute("SELECT free from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
@@ -163,14 +163,14 @@ class pserver():
             ax.plot(datenums, free>>30, label="free memory", linewidth=2.0)
             ax.plot(datenums, ava>>30, label="available memory", linewidth=2.0)
             ax.plot(datenums, [total>>30]*l , label="total memory", linewidth=2.0)
-            
+            ax.set_ylabel('G byte')
         elif device == 'disk':
             disk_names = c.execute("SELECT partial_name from disk_detail_table WHERE name=?", (name,)).fetchall()
             for dname in disk_names:
                 dname = dname[0]
                 load = c.execute("SELECT load from disk_run_record WHERE name=? AND partial_id=? ORDER BY record_time DESC",(name, dname)).fetchmany(size=plot_range)
                 ax.plot(datenums, load, label="{}".format(dname), linewidth=2.0)
-        
+                ax.set_ylabel('percent %')
         
         font1 = {'family' : 'Times New Roman',
         'weight' : 'normal',
@@ -179,7 +179,7 @@ class pserver():
     
 
         ax.legend(prop=font1)
-        ax.set_ylabel('percent %')
+        
         canvas = fig.canvas
         buffer = io.BytesIO()
         canvas.print_png(buffer)
