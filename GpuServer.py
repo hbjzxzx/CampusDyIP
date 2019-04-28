@@ -39,7 +39,6 @@ class Reporter():
                 self.update_key = result[0]
 
     def start_report(self, timer, interval):
-<<<<<<< HEAD
         if not self.update_key:
             print("put ip error: no update_key")
             print("try reregister with name:{}".format(self.name))
@@ -51,12 +50,6 @@ class Reporter():
             print('update system information...{}'.format(time.strftime("%H:%M:%S %b %d %Y ",time.localtime())))
             self.put_system_info()
             timer.enter(interval, 0, self.start_report, (timer, interval) )
-=======
-        self.put_ip_info()
-        self.put_system_info()
-        timer.enter(interval, 0, self.start_report, (timer, interval) )
-    
->>>>>>> e287f29312e29d9a1abeb7d9101f6ac34a2359b0
     def register(self):
         info = Reporter.get_system_info()
         info = json.dumps(info)
