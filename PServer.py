@@ -125,7 +125,7 @@ class pserver():
         times = c.execute("SELECT record_time from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(0, name)).fetchmany(size=plot_range)
         timespan = timedelta(hours=8)
         
-        dates=[dt.utcfromtimestamp(ts[0]) for ts in times]
+        dates=[dt.datetime.utcfromtimestamp(ts[0]) for ts in times]
         datenums=md.date2num(dates)
         
         fig = plt.figure(figsize=(14,10))
