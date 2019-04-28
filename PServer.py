@@ -2,7 +2,16 @@ import os, json, time, urllib.parse, io
 import sqlite3
 import cgi
 import hashlib
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    import matplotlib as mpl
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
+
+
+
 import matplotlib.dates as md
 import datetime as dt
 from Gweb import gen_page
