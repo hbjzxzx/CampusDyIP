@@ -44,8 +44,9 @@ class Reporter():
         timer.enter(interval, 0, self.start_report, (timer, interval) )
     def register(self):
         info = Reporter.get_system_info()
-        info = urllib.parse.urlencode(info)
-        register_url = "http://{}/register?name={}&info={}".format(self.host, self.name,info )
+        info = json.dumps(info)
+        info = urllib.parse.quote(info)
+        register_url = "http://{}/register?name={}&info={}".format(self.host, self.name, info)
         
         response = urllib.request.urlopen(register_url)
         dic = json.loads(response.readlines()[0])
