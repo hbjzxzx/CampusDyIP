@@ -16,6 +16,7 @@ def gen_page(infos):
 
     head = ''.join(T[0:42])
     body_general_info = ''.join(T[42:65]).format(**get_general_block(infos))
+   
     body_detail_info = ''.join(T[65:]).format(**get_detail_block(infos))
     return head + body_general_info + body_detail_info
 
@@ -23,7 +24,7 @@ def get_general_block(infos):
     general_tbody_template = '''
     <tr class="{status}">
                     <td>{name}</td>
-                    <td>{ip}</td>
+                    <td>{ip} </td>
                     <td>{last_ip_update}</td>
                     <td>{cpu_load}</td>
                     <td>{gpu_load}</td>
@@ -43,40 +44,57 @@ def get_detail_block(infos):
                 <div class="panel-body">
                     
                     <div class="container">
+                         <div class="row">
+                            <div class="col-xs-12 placeholder">     
+                            <b style="font-size: 25px">Gpu load curve</b>
+                            </div>
+                        </div>
+                        
                         <div class="row">
-                            <div class="col-xs-6 col-xs-push-3 placeholder">
-                                    <b style="font-size: 25px">Gpu load curve</b>
+                            <div class="col-xs-12 placeholder">
                                 <img src="{gpu_load_url}" class="img-responsive" alt="Gpu load curve">
                             </div>
                         </div>
+                        
 
                         <div class="row">
-                        <div class="col-xs-6 col-xs-push-3 placeholder">
-                                <b style="font-size: 25px">Cpu load curve</b>
+                            <div class="col-xs-12 placeholder">     
+                            <b style="font-size: 25px">Cpu load curve</b>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                        <div class="col-xs-12  placeholder">
                             <img src="{cpu_load_url}" class="img-responsive" alt="cpu load curve">
                         </div>
                         </div>
 
+
+
+
                         <div class="row">
-                                <div class="col-xs-6 col-xs-push-3 placeholder">
-                                        <b style="font-size: 25px">memory load</b>
+                            <div class="col-xs-12 placeholder">     
+                            <b style="font-size: 25px">memory load</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                                <div class="col-xs-12 placeholder">
                                     <img src="{memory_load_url}" class="img-responsive" alt="memory load">
                                 </div>
                         </div>
-
                         <div class="row">
-                                <div class="col-xs-6 col-xs-push-3 placeholder">
-                                        <b style="font-size: 25px">disk usage</b>
+                            <div class="col-xs-12 placeholder">     
+                            <b style="font-size: 25px">disk usage</b>
+                            </div>
+                        </div>
+                        <div class="row">
+                                <div class="col-xs-12 placeholder">
                                     <img src="{disk_usage_url}" class="img-responsive" alt="disk usage">
                                 </div>
                         </div>
-
-
-
                     </div>
-
                 </div>
-            
             </div>
     '''
     block = ""
