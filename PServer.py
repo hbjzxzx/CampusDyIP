@@ -1,8 +1,12 @@
-import os, json, time, datetime, urllib.parse
+import os, json, time, urllib.parse, io
 import sqlite3
 import cgi
 import hashlib
+import matplotlib.pyplot as plt
+import matplotlib.dates as md
+import datetime as dt
 from Gweb import gen_page
+import numpy as np
 class pserver():
     def __init__(self, datapath):
         self.datapath = datapath
@@ -28,6 +32,7 @@ class pserver():
        NAME TEXT    UNIQUE NOT NULL,
        UPDATE_KEY TEXT  UNIQUE NOT NULL,
        LAST_UPDATE_TIME   INT,
+       LAST_SYS_UPDATE_TIME   INT,
        IP TEXT);''')
 
         c.execute('''CREATE TABLE gpu_server_detail_table
@@ -99,12 +104,85 @@ class pserver():
 
     def get_image(self, env, start_response):
         
+        name = env['params']['name'].value
+        device = env['params']['device'].value
+        conn = sqlite3.connect(self.datapath)
+        c = conn.cursor()
         
-        f = open('./web_template/test.jpg', 'rb')
-        image = f.read()
+        
+        
+        plot_range = 200
+        times = c.execute("SELECT record_time from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(0, name)).fetchmany(size=plot_range)
+        dates=[dt.datetime.fromtimestamp(ts[0]) for ts in times]
+        datenums=md.date2num(dates)
+        
+        fig = plt.figure(figsize=(14,10))
+        
+        plt.subplots_adjust(bottom=0.2)
+        plt.xticks( rotation=25 )
+        ax=plt.gca()
+        xfmt = md.DateFormatter('%Y-%m-%d %H:%M:%S')
+        ax.xaxis.set_major_formatter(xfmt)
+
+        if device == 'cpu':
+            cpu_count = c.execute("SELECT cpu_count from gpu_server_detail_table WHERE name=?", (name,)).fetchone()[0]
+            for x in range(cpu_count):
+                loads = c.execute("SELECT load from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(x, name)).fetchmany(size=plot_range)
+                ax.plot(datenums, loads, label="core{} load".format(x), linewidth=2.0)
+                
+        elif device == 'gpu':
+            gpu_count = c.execute("SELECT gpu_count from gpu_server_detail_table WHERE name=?", (name,)).fetchone()[0]
+            for x in range(gpu_count):
+                loads = c.execute("SELECT load from gpu_run_record WHERE gpu_id=? AND name=? ORDER BY record_time DESC",(x, name)).fetchmany(size=plot_range)
+                mem_loads = c.execute("SELECT mem_load from gpu_run_record WHERE gpu_id=? AND name=? ORDER BY record_time DESC",(x, name)).fetchmany(size=plot_range)
+                ax.plot(datenums, loads, label="GPU{} Load".format(x), linewidth=2.0)
+                ax.plot(datenums, mem_loads, label="GPU{} memory load".format(x), linewidth=2.0)
+               
+        elif device == 'mem':
+            used = c.execute("SELECT used from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
+            free = c.execute("SELECT free from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
+            ava = c.execute("SELECT ava from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
+            load = c.execute("SELECT load from mem_run_record WHERE name=? ORDER BY record_time DESC",(name, )).fetchmany(size=plot_range)
+            
+            l = len(used)
+            used = np.array(used).reshape(l)
+            free = np.array(free).reshape(l)
+            ava = np.array(ava).reshape(l)
+            total = c.execute("SELECT memory_total from gpu_server_detail_table WHERE name=?",(name, )).fetchone()[0]
+
+            ax.plot(datenums, used>>30, label="used memory", linewidth=2.0)
+            ax.plot(datenums, free>>30, label="free memory", linewidth=2.0)
+            ax.plot(datenums, ava>>30, label="available memory", linewidth=2.0)
+            ax.plot(datenums, [total>>30]*l , label="total memory", linewidth=2.0)
+            
+        elif device == 'disk':
+            disk_names = c.execute("SELECT partial_name from disk_detail_table WHERE name=?", (name,)).fetchall()
+            for dname in disk_names:
+                dname = dname[0]
+                load = c.execute("SELECT load from disk_run_record WHERE name=? AND partial_id=? ORDER BY record_time DESC",(name, dname)).fetchmany(size=plot_range)
+                ax.plot(datenums, load, label="{}".format(dname), linewidth=2.0)
+        
+        
+        font1 = {'family' : 'Times New Roman',
+        'weight' : 'normal',
+        'size'   : 23,
+        }
+    
+
+        ax.legend(prop=font1)
+        ax.set_ylabel('percent %')
+        canvas = fig.canvas
+        buffer = io.BytesIO()
+        canvas.print_png(buffer)
+        data = buffer.getvalue()
+
+
         start_response('200 OK', [ ('Content-type', 'image/jpg')])
-        f.close()
-        return [image]
+        
+        return [data]
+
+
+
 
     def __call__(self, env, start_response):
         try:
@@ -123,7 +201,7 @@ class pserver():
                 return self.error(env, start_response, "function({},{}) does not exist".format(method,path))
 
     def get_info_web(self, env, start_response):
-        start_response('200 OK', [ ('Content-type', 'text/html')])
+        '''
         a={}
         a["status"] = "success"
         a["name"] = "name"
@@ -132,10 +210,44 @@ class pserver():
         a["cpu_load"] = "100%"
         a["gpu_load"] = "100%"
         a["last_sys_update"] = "yyyy-mm-dd: hh-mm-ss"
-        page = gen_page([a,a,a])
+        '''
+        
+        conn = sqlite3.connect(self.datapath)
+        c = conn.cursor()
+        result = c.execute("SELECT name, ip, last_update_time, last_update_time from gpu_server_info_table").fetchall()
+        info_set = []
+
+        for r in result:
+            
+            a = {}
+            name = r[0]
+            a["gpu_names"] = c.execute("SELECT gpu_name from gpu_detail_table WHERE name=?", (name, )).fetchone()[0]
+            a["name"] = name
+            a["ip"] = r[1]
+            ip_time = time.gmtime(r[2] + 8 * 3600) #UTC + 8 shanghai time
+            a["last_ip_update"] = time.strftime('%m-%d %H:%M:%S %Y', ip_time)
+            sys_time = time.gmtime(r[3] + 8 * 3600) #UTC + 8 shanghai time
+            a["last_sys_update"] = time.strftime('%m-%d %H:%M:%S %Y', sys_time)
+
+            cpu_load = c.execute("SELECT avg(load) from cpu_run_record WHERE name=? GROUP BY record_time ORDER BY record_time DESC", (name, )).fetchone()[0]
+            cpu_count = c.execute("SELECT cpu_count from gpu_server_detail_table WHERE name=?", (name,)).fetchone()[0]
+            a["cpu_load"] = "{:.2f}({} cores)".format(cpu_load, cpu_count)
+            
+            gpu_load = c.execute("SELECT avg(load) from gpu_run_record WHERE name=? GROUP BY record_time ORDER BY record_time DESC", (name, )).fetchone()[0]
+            gpu_count = c.execute("SELECT gpu_count from gpu_server_detail_table WHERE name=?", (name,)).fetchone()[0]
+            a["gpu_load"] = "{:.2f} ({} cards)".format(gpu_load, gpu_count)
+
+            if gpu_load < 50:
+                 a["status"] = "success"
+            else:
+                a["status"] = "danger"
+            info_set.append(a)
+
+
+        start_response('200 OK', [ ('Content-type', 'text/html')])
+        page = gen_page(info_set)
         return([page.encode('utf-8')])
 
-    
     def get_infos(self, env, start_response):
         conn = sqlite3.connect(self.datapath)
         c = conn.cursor()
@@ -168,6 +280,10 @@ class pserver():
             json_dict["reason"] = "name or update_key dismatch"
         else:
             now_time = time.time()
+            
+            c.execute("UPDATE gpu_server_info_table SET last_sys_update_time=? WHERE name=?",(now_time, gpu_server_name))
+            
+            
             for i in range(info['cpu']['cpu_count']):
                 c.execute("INSERT INTO cpu_run_record (name, cpu_id, record_time, load) VALUES(?,?,?,?)",
                     (gpu_server_name, i, now_time, info['cpu']['cpu_{}'.format(i)]))
@@ -257,5 +373,3 @@ class pserver():
         conn.commit()
         conn.close()
         return [json.dumps(json_dict).encode('utf-8')]
-        
-

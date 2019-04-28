@@ -42,6 +42,7 @@ class Reporter():
         self.put_ip_info()
         self.put_system_info()
         timer.enter(interval, 0, self.start_report, (timer, interval) )
+    
     def register(self):
         info = Reporter.get_system_info()
         info = json.dumps(info)
