@@ -1,6 +1,3 @@
 [submodule "util/gputil"]
 	path = util/gputil
 	url = git@github.com:hbjzxzx/gputil.git
-[submodule "util/psutil"]
-	path = util/psutil
-	url = git@github.com:hbjzxzx/psutil.git
