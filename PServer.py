@@ -122,7 +122,8 @@ class pserver():
         
         plot_range = 200
         times = c.execute("SELECT record_time from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(0, name)).fetchmany(size=plot_range)
-        dates=[dt.strptime(time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(ts + 8*3600)), '%Y-%m-%d %H:%M:%S' ) for ts in times]
+        forstr = '%Y-%m-%d %H:%M:%S'
+        dates=[dt.strptime( time.strftime(forstr, time.gmtime(ts[0] + 8*3600)), forstr ) for ts in times]
         datenums=md.date2num(dates)
         
         fig = plt.figure(figsize=(14,10))
