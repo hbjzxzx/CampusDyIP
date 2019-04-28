@@ -1,4 +1,7 @@
+
+
 import PServer, os
+
 def application(environ, start_response):
     server = PServer.pserver(os.path.join('.','gpu_server_database.db'))
     return server(environ, start_response)
