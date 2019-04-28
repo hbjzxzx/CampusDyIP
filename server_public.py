@@ -1,6 +1,6 @@
 import sys
 
-path = '/var/www/http/CampusDyIP'
+path = '/var/www/html/CampusDyIP'
 if path not in sys.path:
     sys.path.append(path)
 import PServer, os
