@@ -158,19 +158,29 @@ class Reporter():
         info["mem"] = mem_info
         info["disk"] = disk_info
         return info
+
+        
 if __name__ == '__main__':
-    Reporter.get_system_info()
-    
-    server_name = 'server1_209'
-    local_dbname = 'sqlitedb.db'
-    #server_url = '95.169.16.163'
-    server_ip_port = '192.168.0.105:8080'
+    while True:
+        try:
+            Reporter.get_system_info()
+
+            server_name = 'server1_209'
+            local_dbname = 'sqlitedb.db'
+            #server_url = '95.169.16.163'
+            server_ip_port = '192.168.0.105:8080'
 
 
-    interval = 60
+            interval = 60
 
-    report = Reporter (server_name, local_dbname, server_ip_port)
-    s = sched.scheduler(time.time, time.sleep)
-    s.enter(0, 0, report.start_report, (s, interval))
-    print('start...')
-    s.run()
+            report = Reporter (server_name, local_dbname, server_ip_port)
+            s = sched.scheduler(time.time, time.sleep)
+            s.enter(0, 0, report.start_report, (s, interval))
+            print('start...')
+            s.run()
+        except KeyboardInterrupt:
+            print('stop')
+            break
+        except Exception as e:
+            print('Exception : {}'.format(str(e)))
+            print('continue...')
