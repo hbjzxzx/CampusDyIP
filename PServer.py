@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 import matplotlib.dates as md
 import datetime as dt
+from datetime import timedelta
 from Gweb import gen_page
 import numpy as np
 class pserver():
@@ -122,8 +123,9 @@ class pserver():
         
         plot_range = 200
         times = c.execute("SELECT record_time from cpu_run_record WHERE cpu_id=? AND name=? ORDER BY record_time DESC",(0, name)).fetchmany(size=plot_range)
-        forstr = '%Y-%m-%d %H:%M:%S'
-        dates=[dt.strptime( time.strftime(forstr, time.gmtime(ts[0] + 8*3600)), forstr ) for ts in times]
+        timespan = timedelta(hours=8)
+        
+        dates=[dt.utcfromtimestamp(ts[0]) for ts in times]
         datenums=md.date2num(dates)
         
         fig = plt.figure(figsize=(14,10))
