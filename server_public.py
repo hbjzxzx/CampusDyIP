@@ -1,6 +1,9 @@
-
-
+import sys
 import PServer, os
+path = '/var/www/http/CampusDyIP'
+if path not in sys.path:
+    sys.path.append(path)
+
 
 def application(environ, start_response):
     server = PServer.pserver(os.path.join('.','gpu_server_database.db'))
