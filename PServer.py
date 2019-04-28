@@ -1,4 +1,4 @@
-import os, json, time, datetime
+import os, json, time, datetime, urllib.parse
 import sqlite3
 import cgi
 import hashlib
@@ -34,15 +34,12 @@ class pserver():
        (
        NAME TEXT  ,
        gpu_count INT,
-
        cpu_count INT,
-
        memory_total INT,
-       
        disk_part_count INT
        );''')
 
-       c.execute('''CREATE TABLE gpu_detail_table(
+        c.execute('''CREATE TABLE gpu_detail_table (
            name TEXT,
            gpu_id TEXT,
            gpu_name TEXT,
@@ -50,21 +47,23 @@ class pserver():
        )
        ''')
 
-        c.execute('''CREATE TABLE disk_detail_table(
+        c.execute('''CREATE TABLE disk_detail_table (
            name TEXT,
-           partial_id TEXT,
            partial_name TEXT,
            partial_total INT
        )
        ''')
 
-        c.execute('''CREATE TABLE disk_run_record(
+        c.execute('''CREATE TABLE disk_run_record (
+           name TEXT,
            partial_id TEXT,
            record_time INT,
-           used INT
+           used INT,
+           load INT
        )
        ''')
-        c.execute('''CREATE TABLE gpu_run_record(
+        c.execute('''CREATE TABLE gpu_run_record (
+           name TEXT,
            gpu_id TEXT,
            record_time INT,
            load INT,
@@ -72,7 +71,8 @@ class pserver():
        )
        ''')
 
-        c.execute('''CREATE TABLE cpu_run_record(
+        c.execute('''CREATE TABLE cpu_run_record (
+           name TEXT,
            cpu_id TEXT,
            record_time INT,
            load INT
@@ -84,7 +84,8 @@ class pserver():
            record_time INT,
            used INT,
            free INT,
-           ava INT
+           ava INT,
+           load INT
        )
        ''')
 
@@ -97,6 +98,8 @@ class pserver():
         return [c]
 
     def get_image(self, env, start_response):
+        
+        
         f = open('./web_template/test.jpg', 'rb')
         image = f.read()
         start_response('200 OK', [ ('Content-type', 'image/jpg')])
@@ -156,6 +159,7 @@ class pserver():
         gpu_server_name = env['params']['name'].value
         gpu_server_update_key = env['params']['update_key'].value
         info = env['params']['info'].value
+        info = json.loads(info)
 
         result = c.execute("SELECT name, update_key from gpu_server_info_table WHERE name=? and update_key=?;",
                             (gpu_server_name, gpu_server_update_key)).fetchall()
@@ -163,8 +167,26 @@ class pserver():
         if len(result) == 0:
             json_dict["reason"] = "name or update_key dismatch"
         else:
-            c.execute("INSERT INTO gpu_server_detail_table (name, record_time, info) VALUE(?,?,?)",
-                    (gpu_server_name, time.time(), info))
+            now_time = time.time()
+            for i in range(info['cpu']['cpu_count']):
+                c.execute("INSERT INTO cpu_run_record (name, cpu_id, record_time, load) VALUES(?,?,?,?)",
+                    (gpu_server_name, i, now_time, info['cpu']['cpu_{}'.format(i)]))
+
+            
+            for i in range(info['gpu']['gpu_count']):
+                gpu = info['gpu']['gpus']['gpu{}'.format(i)]
+                c.execute("INSERT INTO gpu_run_record (name, gpu_id, record_time, load, mem_load) VALUES(?,?,?,?,?)",
+                    (gpu_server_name, i, now_time, gpu['load'], gpu['mem_load']))
+            
+            for part_name, used_vec in info['disk'].items():
+                c.execute("INSERT INTO disk_run_record (name, partial_id, record_time, used, load) VALUES(?,?,?,?,?)",
+                    (gpu_server_name, part_name, now_time, used_vec[1], used_vec[3]))
+                
+
+
+            c.execute("INSERT INTO mem_run_record (name, record_time, used, free, ava, load) VALUES(?,?,?,?,?,?)",
+                    (gpu_server_name, now_time, info['mem']['used'], info['mem']['free'], info['mem']['ava'], info['mem']['load']))
+            
             put_success_flag = True
              
         start_response('200 OK', [ ('Content-type', 'application/json')])
@@ -203,6 +225,8 @@ class pserver():
         conn = sqlite3.connect(self.datapath)
         c = conn.cursor()
         gpu_server_name = env['params']['name'].value
+        info = env['params']['info'].value
+        info = json.loads(info)
         json_dict = {}
 
         result = c.execute("SELECT name from gpu_server_info_table WHERE name=?",(gpu_server_name,)).fetchall()
@@ -216,6 +240,17 @@ class pserver():
             md.update( (gpu_server_name + salt_text).encode("utf8"))
             update_key =  md.hexdigest()
             c.execute("INSERT INTO gpu_server_info_table (NAME, UPDATE_KEY) VALUES(?,?)",(gpu_server_name, update_key))
+            c.execute("INSERT INTO gpu_server_detail_table(name, gpu_count, cpu_count, memory_total, disk_part_count) VALUES(?,?,?,?,?)",
+                        (gpu_server_name, info['gpu']['gpu_count'], info['cpu']['cpu_count'], info['mem']['total'], len(info['disk'])))
+            
+            for i in range(info['gpu']['gpu_count']):
+                gpu = info['gpu']['gpus']['gpu{}'.format(i)]
+                c.execute("INSERT INTO gpu_detail_table (name, gpu_id, gpu_name, gpu_total_mem) VALUES(?,?,?,?)",
+                            (gpu_server_name, i, gpu['name'], gpu['mem_total']))
+            for partial_nam, usage_info in info['disk'].items():
+                c.execute("INSERT INTO disk_detail_table (name, partial_name, partial_total) VALUES(?,?,?)",
+                            (gpu_server_name, partial_nam, usage_info[0]))
+                
         start_response('200 OK', [ ('Content-type', 'application/json')])
         
         json_dict["update_key"] = update_key
