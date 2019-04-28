@@ -101,7 +101,7 @@ class Reporter():
         data = [i for i in data if i and i.startswith('ppp0')]
         if not data:
             return "ppp0_break_down"
-        data = data.split(' ')
+        data = data[0].split(' ')
         c = data.index('inet')
         if c != -1:
             return data[c+1]
@@ -167,8 +167,8 @@ if __name__ == '__main__':
 
             server_name = 'server1_209'
             local_dbname = 'sqlitedb.db'
-            #server_url = '95.169.16.163'
-            server_ip_port = '192.168.0.105:8080'
+            server_ip_port = '95.169.16.163'
+            #server_ip_port = '192.168.0.105:8080'
 
 
             interval = 60
