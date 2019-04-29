@@ -92,21 +92,42 @@ class Reporter():
             print("put system info error: {}".format(dic["reason"]))
 
     @classmethod
-    def getIP_ByIfconfig(cls):
-        p = Popen(['ifconfig'], stdout = PIPE)
-        data = [x.decode('utf-8') for x in p.stdout.readlines()]
-        data = ''.join(data)
-        data = data.split('\n\n')
+    def getIP_ByIfconfig(cls, use_router = False):
+        if not use_router:
+            p = Popen(['ifconfig'], stdout = PIPE)
+            data = [x.decode('utf-8') for x in p.stdout.readlines()]
+            data = ''.join(data)
+            data = data.split('\n\n')
 
-        data = [i for i in data if i and i.startswith('ppp0')]
-        if not data:
-            return "ppp0_break_down"
-        data = data[0].split(' ')
-        c = data.index('inet')
-        if c != -1:
-            return data[c+1]
+            data = [i for i in data if i and i.startswith('ppp0')]
+            if not data:
+                return "ppp0_break_down"
+            data = data[0].split(' ')
+            c = data.index('inet')
+            if c != -1:
+                return data[c+1]
+            else:
+                return ""
         else:
-            return ""
+            from selenium import webdriver
+            
+            option = webdriver.ChromeOptions()
+            option.add_argument('headless')
+            br = webdriver.Chrome(options=option)
+            br.get('http://192.168.1.1')
+            br.find_element_by_id('pcPassword').send_keys('ibrain')
+            br.find_element_by_id('loginBtn').click()
+
+            time.sleep(3)
+            frames = br.find_elements_by_tag_name("frame")
+            targe = frames[4]
+            br.switch_to.frame(targe)
+
+
+            table = br.find_element_by_xpath('/html/body/center/form/table[4]/tbody/tr[2]/td/table/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]').text
+
+            return table
+
 
     @classmethod
     def get_system_info(cls, get_cpu_load = False):
@@ -161,6 +182,7 @@ class Reporter():
 
         
 if __name__ == '__main__':
+   
     while True:
         try:
             Reporter.get_system_info()
